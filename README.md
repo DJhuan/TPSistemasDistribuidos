@@ -22,7 +22,7 @@ Para isso, o Têmis utiliza uma arquitetura composta por diferentes componentes 
 Através dessa integração, o sistema entrega respostas contextualizadas, consistentes e alinhadas às diretrizes internas, funcionando como um assistente de conformidade normativa inteligente.
 
 ## Descrição da arquitetura
-< img title="Imagem da Arquitetura" src="https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/T%C3%AAmis%20-%20Sistemas%20Distribu%C3%ADdos.jpg" >
+![Imagem da Arquitetura](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/T%C3%AAmis%20-%20Sistemas%20Distribu%C3%ADdos.jpg)
   
 ### Front-End
 Módulo utilizado pelo usuário (Membro da empresa) para receber auxílio de como a como a conduta pode ser avaliada/penalizada.
