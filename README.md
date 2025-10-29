@@ -26,4 +26,22 @@ Através dessa integração, o sistema entrega respostas contextualizadas, consi
 ### Front-End
 Módulo utilizado pelo usuário (Membro da empresa) para receber auxílio de como a como a conduta pode ser avaliada/penalizada.
 
+## Justificativa da arquitetura
+
+A arquitetura do sistema foi projetada com base em princípios de modularidade, escalabilidade e distribuição de responsabilidades entre diferentes componentes. O objetivo é permitir que a aplicação realize análises automáticas de conduta e sugestão de ações corretivas de forma eficiente, segura e facilmente expansível.
+
+O sistema é composto por dois agentes principais — o Processador de Conduta (Agente 1) e o Sugeridor de Ação (Agente 2) — que se comunicam por meio de uma API central. Essa abordagem segue o modelo de microsserviços, favorecendo a independência de cada módulo e possibilitando o desenvolvimento paralelo pela equipe.
+
+A comunicação entre os módulos é feita via API, que atua como intermediária entre o frontend, os agentes e o módulo RAG. O uso de uma API facilita a integração com diferentes interfaces e garante um ponto único de acesso às funcionalidades do sistema, mantendo o acoplamento baixo e a coesão alta.
+
+A escolha pela arquitetura RAG (Retrieval-Augmented Generation) se justifica pela necessidade de interpretar descrições de ocorrências e associá-las com documentos de conduta. O RAG consulta uma base vetorial com embeddings gerados a partir de documentos da Comp Júnior, permitindo que o sistema encontre trechos relevantes antes de enviar o prompt final ao modelo de linguagem (LLM). Essa combinação aumenta a precisão das respostas e garante que o chatbot utilize informações reais e atualizadas da documentação, reduzindo o risco de alucinações por parte do modelo.
+
+Foram definidos bancos de dados distintos para diferentes propósitos:
+
+- DB RAG: contém os embeddings e documentos de conduta usados nas consultas;
+- Banco de usuários: mantém informações de autenticação e controle de acesso.
+
+
+Essa separação segue o princípio da especialização de dados, evitando sobrecarga de um único repositório e permitindo otimizações específicas.
+
 ### API-Gateway
