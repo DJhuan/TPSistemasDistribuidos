@@ -56,4 +56,4 @@ Foram definidos bancos de dados distintos para diferentes propósitos:
 Essa separação segue o princípio da especialização de dados, evitando sobrecarga de um único repositório e permitindo otimizações específicas.
 
 ## Modelagem de Ameaças
-[Tabela de ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/tabela_de_ameacas.jpg)
+![Tabela de ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/tabela_de_ameacas.jpg)
