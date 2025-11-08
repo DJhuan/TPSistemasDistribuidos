@@ -1,0 +1,7 @@
+pdfplumber
+faiss-cpu
+requests
+flask
+tqdm
+numpy
+python-dotenv
