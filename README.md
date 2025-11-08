@@ -62,6 +62,6 @@ Essa separação segue o princípio da especialização de dados, evitando sobre
 
 ## Modelagem de Ameaças
 
-![Arquitetura pré-ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/Imagens/arquitetura_pre_ameacas.jpg)
+![Arquitetura pré-ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/Imagens/temis_pre_ameaca.jpg)
 
-![Tabela de ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/Imagens/tabela_de_ameacas.jpg)
+![Tabela de ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/Imagens/tabela_de_ameacas.png)
