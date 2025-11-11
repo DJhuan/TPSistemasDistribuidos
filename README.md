@@ -1,5 +1,5 @@
 # Têmis
-c
+
 Repositório do trabalho prático de Sistemas Distribídos, envolvendo RAG, agentes de IA e segurança.
 
 ## Descriçao do projeto
