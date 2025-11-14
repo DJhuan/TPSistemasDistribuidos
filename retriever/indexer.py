@@ -11,6 +11,7 @@ from langchain_community.vectorstores import FAISS
 PDF_DIR = "./pdfs"
 INDEX_PATH = "./index.faiss"
 META_PATH = "./metadata.json"
+OLLAMA_EMBED_URL = os.getenv("OLLAMA_EMBED_URL", "http://ollama:11434")
 
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
@@ -42,7 +43,7 @@ def chunk_documents(docs: List[Dict]) -> List[Dict]:
     return chunks
 
 def get_embedder():
-    return OllamaEmbeddings(model=EMBED_MODEL)
+    return OllamaEmbeddings(model=EMBED_MODEL, base_url=OLLAMA_EMBED_URL)
 
 
 def build_faiss_index(chunks: List[Dict]):

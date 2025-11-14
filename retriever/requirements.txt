@@ -1,11 +1,7 @@
-pdfplumber
 faiss-cpu
-requests
-flask
-tqdm
-numpy
-python-dotenv
 langchain
-tiktoken
 pypdf
- 
+fastapi
+pydantic
+uvicorn
+langchain-community

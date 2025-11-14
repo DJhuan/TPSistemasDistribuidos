@@ -11,6 +11,7 @@ from langchain_community.embeddings import OllamaEmbeddings
 INDEX_PATH = os.getenv("INDEX_PATH", "./index.faiss")
 META_PATH = os.getenv("META_PATH", "./metadata.json")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
+OLLAMA_EMBED_URL = os.getenv("OLLAMA_EMBED_URL", "http://ollama:11434")
 K_DEFAULT = 5
 
 def load_metadata(path: str) -> List[Dict]:
@@ -19,7 +20,7 @@ def load_metadata(path: str) -> List[Dict]:
 
 
 def load_vectorstore(index_path: str):
-    embedder = OllamaEmbeddings(model=EMBED_MODEL)
+    embedder = OllamaEmbeddings(model=EMBED_MODEL, base_url=OLLAMA_EMBED_URL)
     return FAISS.load_local(index_path, embedder, allow_dangerous_deserialization=True)
 
 
