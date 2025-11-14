@@ -1,4 +1,5 @@
 # Têmis
+c
 Repositório do trabalho prático de Sistemas Distribídos, envolvendo RAG, agentes de IA e segurança.
 
 ## Descriçao do projeto
@@ -22,19 +23,24 @@ Para isso, o Têmis utiliza uma arquitetura composta por diferentes componentes 
 Através dessa integração, o sistema entrega respostas contextualizadas, consistentes e alinhadas às diretrizes internas, funcionando como um assistente de conformidade normativa inteligente.
 
 ## Descrição da arquitetura
-![Imagem da Arquitetura](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/T%C3%AAmis%20-%20Sistemas%20Distribu%C3%ADdos.jpg)
-  
+
+![Imagem da Arquitetura](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/Imagens/T%C3%AAmis%20-%20Sistemas%20Distribu%C3%ADdos.jpg)
+
 ### Front-End
+
 Módulo utilizado pelo usuário (Membro da empresa) para receber auxílio de como a como a conduta pode ser avaliada/penalizada.
 
 ### API-Gateway
+
 Módulo responsável por coordenar requisições do Front-End, solicitando partes interessadas da documentação ao RAG, enviando a descrição da conduta e documentação para o LLM e, por fim, retornando uma resposta ao usuário.
 Além disso, é responsabilidade desta API autenticar o usuário e gerar LOGs de acessos ao sistema.
 
 ### RAG
+
 Módulo de Recuperação Generativa Aumentada, responsável por realizar embedding dos documentos (gerar representações vetoriais de uma frase ou palavra), armazenar estas informações no banco de dados vetorial e permitir a consulta por similaridade a partir de um prompt de entrada. A saída são os trechos da fonte mais relevante para análise feita pelo LLM.
 
 ### LLM
+
 Módulo de consulta a um grande modelo de linguagem. Ele recebe o promp de entrada (dado pelo usuário), saída da busca do rag e prompt do sistema (instruções de como o agente de IA deve se comportar e utilizar os outros dados fornecidos). O retorno (enviado para API) descreve como as ações se relacionam com as regras e políticas da empresa e como prosseguir a partir disso.
 
 ## Justificativa da arquitetura
@@ -52,8 +58,10 @@ Foram definidos bancos de dados distintos para diferentes propósitos:
 - DB RAG: contém os embeddings e documentos de conduta usados nas consultas;
 - Banco de usuários: mantém informações de autenticação e controle de acesso.
 
-
 Essa separação segue o princípio da especialização de dados, evitando sobrecarga de um único repositório e permitindo otimizações específicas.
 
 ## Modelagem de Ameaças
-![Tabela de ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/tabela_de_ameacas.jpg)
+
+![Arquitetura pré-ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/Imagens/temis_pre_ameaca.jpg)
+
+![Tabela de ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/Imagens/tabela_de_ameacas.png)
