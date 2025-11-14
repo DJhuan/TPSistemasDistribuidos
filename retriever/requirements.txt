@@ -5,3 +5,7 @@ flask
 tqdm
 numpy
 python-dotenv
+langchain
+tiktoken
+pypdf
+ 
