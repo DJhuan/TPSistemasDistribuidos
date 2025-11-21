@@ -14,7 +14,7 @@ app = FastAPI(title="Têmis API Gateway")
 
 #URLs dos microserviços lidas do .env
 RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://localhost:5000/search")
-LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://localhost:8002/generate")
+LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://localhost:8024/judge")
 
 class CondutaRequest(BaseModel):
     descricao: str
