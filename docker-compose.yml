@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  llm-service:
+    build: ./llm
+    container_name: llm-service
+    ports:
+      - "8002:8002"
+    environment:
+      - GOOGLE_API_KEY=sua_chave_aqui
+      
+  controller-service:
+    build: ./controller
+    container_name: controller-service
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_SERVICE_URL=http://llm-service:8024/judge
+      - RAG_SERVICE_URL=http://host.docker.internal:5000/search
+    depends_on:
+      - llm-service
