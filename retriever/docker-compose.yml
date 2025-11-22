@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  retriever:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - OLLAMA_EMBED_URL=http://ollama:11434
+      - EMBED_MODEL=nomic-embed-text
+      - INDEX_PATH=/app/index.faiss
+      - META_PATH=/app/metadata.json
+    volumes:
+      - ./index.faiss:/app/index.faiss
+      - ./metadata.json:/app/metadata.json
+    depends_on:
+      - ollama
+    restart: unless-stopped
+  
+  indexer:
+    build: .
+    command: python indexer.py
+    environment:
+      - OLLAMA_EMBED_URL=http://ollama:11434
+      - EMBED_MODEL=nomic-embed-text
+      - PDF_DIR=/app/pdfs
+      - INDEX_PATH=/app/index.faiss
+      - META_PATH=/app/metadata.json
+    volumes:
+      - ./pdfs:/app/pdfs
+      - ./index.faiss:/app/index.faiss
+      - ./metadata.json:/app/metadata.json
+    depends_on:
+      - ollama
+    restart: "no"
+
+volumes:
+  ollama_data:

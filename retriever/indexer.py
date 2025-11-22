@@ -1,92 +1,93 @@
-import pdfplumber
-import json
-import requests
 import os
-import faiss
-from uuid import uuid4
-import numpy as np
+import json
+from pathlib import Path
+from typing import List, Dict
 
-OLLAMA_EMBED_URL = os.getenv("OLLAMA_EMBED_URL", "http://localhost:11434/api/embed")
-CHUNK_SIZE = 1000   #tamanho de cada chunk
-CHUNK_OVERLAP = 200 #intersecção entre cada chunk
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_ollama import OllamaEmbeddings
+from langchain_community.vectorstores import FAISS
+
 PDF_DIR = "./pdfs"
 INDEX_PATH = "./index.faiss"
 META_PATH = "./metadata.json"
+OLLAMA_EMBED_URL = os.getenv("OLLAMA_EMBED_URL", "http://ollama:11434")
+
+CHUNK_SIZE = 500
+CHUNK_OVERLAP = 50
 EMBED_MODEL = "nomic-embed-text"
 
-def extract_text_from_pdf(path):
-    texts = []
-    with pdfplumber.open(path) as pdf:
-        for p in pdf.pages:
-            txt = p.extract_text()
-            if txt:
-                texts.append(txt)
-    return "\n".join(texts)
+def load_pdfs(pdf_dir: str) -> List[Dict]:
+    """Carrega todos os PDFs de um diretório e retorna uma lista de documentos."""
+    docs = []
+    pdf_dir = Path(pdf_dir)
 
-def chunk_text(text, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
-    chunks = []
-    i = 0
-    L = len(text)
-    while i < L:
-        end = min(i + size, L)
-        chunk = text[i:end]
-        chunks.append(chunk.strip())
-        i += size - overlap
+    for pdf_file in pdf_dir.glob("*.pdf"):
+        loader = PyPDFLoader(str(pdf_file))
+        pdf_docs = loader.load()
+
+        for d in pdf_docs:
+            d.metadata["source"] = pdf_file.name
+        
+        docs.extend(pdf_docs)
+
+    return docs
+
+def chunk_documents(docs: List[Dict]) -> List[Dict]:
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP
+    )
+
+    chunks = splitter.split_documents(docs)
     return chunks
 
-def embed_texts(texts, model=EMBED_MODEL):
-    # Use the Ollama HTTP embed endpoint to get embeddings for a batch of texts.
-    # `texts` can be a single string or a list of strings.
-    payload = { "model": model, "input": texts }
-    try:
-        resp = requests.post(OLLAMA_EMBED_URL, json=payload, timeout=60)
-        resp.raise_for_status()
-        data = resp.json()
-        if "embeddings" not in data:
-            raise ValueError(f"unexpected embed response: {data}")
-        return data["embeddings"]
-    except Exception as e:
-        print("Failed to get embeddings from Ollama:", e)
-        raise
+def get_embedder():
+    return OllamaEmbeddings(model=EMBED_MODEL, base_url=OLLAMA_EMBED_URL)
+
+
+def build_faiss_index(chunks: List[Dict]):
+    embedder = get_embedder()
+
+    print("[1/2] Gerando embeddings...")
+    vectorstore = FAISS.from_documents(chunks, embedder)
+
+    print("[2/2] Salvando índice FAISS...")
+    vectorstore.save_local(INDEX_PATH)
+
+    return vectorstore
+
+def save_metadata(chunks: List[Dict]):
+    metadata_list = [
+        {
+            "text": c.page_content,
+            "source": c.metadata.get("source", "unknown"),
+            "page": c.metadata.get("page", None)
+        }
+        for c in chunks
+    ]
+
+    with open(META_PATH, "w", encoding="utf-8") as f:
+        json.dump(metadata_list, f, indent=4, ensure_ascii=False)
 
 def main():
-    metas = []
-    all_embeddings = []
+    print("Carregando PDFs...")
+    docs = load_pdfs(PDF_DIR)
 
-    for filename in os.listdir(PDF_DIR):
-        if not filename.lower().endswith(".pdf"):
-            continue
-        path = os.path.join(PDF_DIR, filename)
-        print("Processing", filename)
-        text = extract_text_from_pdf(path)
-        chunks = chunk_text(text)
-        texts_for_embed = []
-        
-        for id, chunk in enumerate(chunks):
-            chunk_id = str(uuid4()) #cria um id unico
-            metas.append({
-                "chunk_id": chunk_id,
-                "doc": filename,
-                "chunk_index": id,
-                "text": chunk[:1000]
-            })
-            texts_for_embed.append(chunk)
+    print(f"{len(docs)} páginas encontradas.")
 
-        BATCH = 32
-        for i in range(0, len(texts_for_embed), BATCH):
-            batch = texts_for_embed[i: i+BATCH]
-            embeddings = embed_texts(batch)
-            all_embeddings.extend(embeddings)
+    print("Gerando chunks...")
+    chunks = chunk_documents(docs)
+    print(f"{len(chunks)} chunks gerados.")
 
-    X = np.array(all_embeddings).astype('float32')
-    dim = X.shape[1]
-    index = faiss.IndexFlatL2(dim)
-    index.add(X)
-    faiss.write_index(index, INDEX_PATH)
-    
-    with open(META_PATH, "w", encoding="utf-8") as f:
-        json.dump(metas, f, ensure_ascii=False, indent=2)
-    print("index built:", INDEX_PATH, "meta:", META_PATH)
+    print("Construindo índice vetorial FAISS...")
+    build_faiss_index(chunks)
+
+    print("Salvando metadados...")
+    save_metadata(chunks)
+
+    print("Indexação concluída com sucesso!")
+
 
 if __name__ == "__main__":
     main()
