@@ -65,3 +65,17 @@ Essa separação segue o princípio da especialização de dados, evitando sobre
 ![Arquitetura pré-ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/Imagens/temis_pre_ameaca.jpg)
 
 ![Tabela de ameaças](https://github.com/DJhuan/TPSistemasDistribuidos/blob/main/Imagens/tabela_de_ameacas.png)
+
+## Como utilizar os contêineres
+
+### Controller
+
+1. Crie o arquivo .env na pasta controller com as variáveis de ambiente necessárias (consulte o arquivo example.env para referência).
+
+2. No terminal, navegue até a pasta controller e execute os seguintes comandos:
+
+```bash
+cd controller
+docker build -t controller:latest .
+docker run -p 8024:8024 --env-file ./.env
+```

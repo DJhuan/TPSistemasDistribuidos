@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   llm-service:
     build: ./llm
@@ -13,7 +11,7 @@ services:
     build: ./controller
     container_name: controller-service
     ports:
-      - "8000:8000"
+      - "8024:8024"
     environment:
       - LLM_SERVICE_URL=http://llm-service:8024/judge
       - RAG_SERVICE_URL=http://host.docker.internal:5000/search
