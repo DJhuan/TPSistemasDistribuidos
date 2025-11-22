@@ -8,8 +8,6 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
-    command: >
-      serve && pull nomic-embed-text:latest
 
   retriever:
     build: .

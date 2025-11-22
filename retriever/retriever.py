@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 
 INDEX_PATH = os.getenv("INDEX_PATH", "./index.faiss")
 META_PATH = os.getenv("META_PATH", "./metadata.json")
