@@ -9,22 +9,6 @@ services:
       - ollama_data:/root/.ollama
     restart: unless-stopped
 
-  retriever:
-    build: .
-    ports:
-      - "5000:5000"
-    environment:
-      - OLLAMA_EMBED_URL=http://ollama:11434
-      - EMBED_MODEL=nomic-embed-text
-      - INDEX_PATH=/app/index.faiss
-      - META_PATH=/app/metadata.json
-    volumes:
-      - ./index.faiss:/app/index.faiss
-      - ./metadata.json:/app/metadata.json
-    depends_on:
-      - ollama
-    restart: unless-stopped
-  
   indexer:
     build: .
     command: python indexer.py
@@ -42,5 +26,22 @@ services:
       - ollama
     restart: "no"
 
+  retriever:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - OLLAMA_EMBED_URL=http://ollama:11434
+      - EMBED_MODEL=nomic-embed-text
+      - INDEX_PATH=/app/index.faiss
+      - META_PATH=/app/metadata.json
+    volumes:
+      - ./index.faiss:/app/index.faiss
+      - ./metadata.json:/app/metadata.json
+    depends_on:
+      - ollama
+      - indexer
+    restart: unless-stopped
+  
 volumes:
   ollama_data:
