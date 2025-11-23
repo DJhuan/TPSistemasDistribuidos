@@ -1,19 +1,100 @@
+version: "3.9"
+
 services:
+  # =========================================
+  # MÓDULO 1: BANCO DE DADOS E RAG
+  # =========================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-service
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  indexer:
+    build: ./retriever
+    container_name: indexer-service
+    command: python indexer.py
+    environment:
+      - OLLAMA_EMBED_URL=http://ollama:11434
+      - EMBED_MODEL=nomic-embed-text
+      - PDF_DIR=/app/pdfs
+      - INDEX_PATH=/app/index.faiss
+      - META_PATH=/app/metadata.json
+    volumes:
+      # Ajustando os caminhos para serem relativos à raiz
+      - ./retriever/pdfs:/app/pdfs
+      - ./retriever/index.faiss:/app/index.faiss
+      - ./retriever/metadata.json:/app/metadata.json
+    depends_on:
+      - ollama
+    restart: "no"
+
+  retriever:
+    build: ./retriever
+    container_name: retriever-service
+    ports:
+      - "5000:5000"
+    environment:
+      - OLLAMA_EMBED_URL=http://ollama:11434
+      - EMBED_MODEL=nomic-embed-text
+      - INDEX_PATH=/app/index.faiss
+      - META_PATH=/app/metadata.json
+    volumes:
+      - ./retriever/index.faiss:/app/index.faiss
+      - ./retriever/metadata.json:/app/metadata.json
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  # =========================================
+  # MÓDULO 2: APLICAÇÃO PRINCIPAL (TÊMIS)
+  # =========================================
   llm-service:
     build: ./llm
     container_name: llm-service
     ports:
-      - "8002:8002"
+      - "8024:8024"
     environment:
-      - GOOGLE_API_KEY=sua_chave_aqui
-      
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    restart: unless-stopped
+
   controller-service:
     build: ./controller
     container_name: controller-service
     ports:
-      - "8024:8024"
+      - "8001:8001"
     environment:
       - LLM_SERVICE_URL=http://llm-service:8024/judge
-      - RAG_SERVICE_URL=http://host.docker.internal:5000/search
+      # A MÁGICA ACONTECE AQUI: Chamamos pelo nome do serviço "retriever"
+      - RAG_SERVICE_URL=http://retriever:5000/search
     depends_on:
       - llm-service
+      - retriever
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+
+  api-gateway-service:
+    build: ./api_gateway
+    container_name: api-gateway-service
+    ports:
+      - "8000:8000"
+    environment:
+      - CONTROLLER_URL=http://controller-service:8001/orquestrar_analise
+    depends_on:
+      - controller-service
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  frontend-service:
+    build: ./frontend
+    container_name: frontend-service
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api-gateway-service:8000
+    depends_on:
+      - api-gateway-service
+
+volumes:
+  ollama_data:

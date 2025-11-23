@@ -1,117 +1,73 @@
 import httpx
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import logging
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
+# Configuração básica de logs
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("Controller")
 
-app = FastAPI(title="Têmis API Gateway")
+app = FastAPI(title="Têmis Business Controller")
 
-#URLs dos microserviços lidas do .env
-RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://localhost:5000/search")
-LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://localhost:8024/judge")
+# Definição de URLs dos microsserviços
+# O padrão assume que os serviços estão rodando na mesma rede Docker com seus nomes de serviço
+RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://retriever:5000/search")
+LLM_SERVICE_URL = os.getenv("LLM_SERVICE_URL", "http://llm-service:8024/judge")
 
 class CondutaRequest(BaseModel):
     descricao: str
 
-class AnaliseResponse(BaseModel):
-    analise_completa: str
-    acoes_sugeridas: str
-
-async def get_current_user(request: Request):
+@app.post("/orquestrar_analise")
+async def orquestrar(data: CondutaRequest):
     """
-    (Placeholder de Autenticação)
-    Valida se o usuário tem um token de autorização.
-    No futuro, pode ser trocado por uma validação JWT.
+    Recebe a descrição do Gateway, busca normas no RAG, 
+    manda pro LLM e devolve a resposta.
     """
-    token = request.headers.get("Authorization")
-    if not token:
-        logger.warning("Acesso sem token de autorização.")
-        #em produção:
-        #raise HTTPException(status_code=401, detail="Token de autorização ausente")
+    logger.info("Controller: Iniciando orquestração da conduta.")
     
-    #simula um usuario valido
-    user = {"username": "usuario_teste_comp"} 
-    logger.info(f"Usuário autenticado: {user['username']}")
-    return user
-
-
-@app.post("/analisar_conduta", response_model=AnaliseResponse)
-async def analisar_conduta(
-    request_data: CondutaRequest, 
-    user: dict = Depends(get_current_user)
-):
-    """
-    Endpoint principal: Orquestra a análise de conduta.
-    """
-    logger.info(f"Iniciando análise para o usuário: {user['username']}")
-
-    try:
-        #1. chamar o serviço RAG para buscar documentos
-        async with httpx.AsyncClient() as client:
-            logger.info(f"Consultando RAG: {request_data.descricao[:50]}...")
-            rag_payload = {"query": request_data.descricao}
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        
+        # --- PASSO 1: BUSCAR NO RAG ---
+        contexto_final = []
+        try:
+            logger.info(f"Buscando no RAG: {RAG_SERVICE_URL}")
+            # O Retriever espera "query" e "k"
+            rag_resp = await client.post(RAG_SERVICE_URL, json={"query": data.descricao, "k": 3})
+            rag_resp.raise_for_status()
             
-            rag_response = await client.post(
-                RAG_SERVICE_URL, 
-                json=rag_payload,
-                timeout=10.0
-            )
-            rag_response.raise_for_status() #lança exceçao se o RAG falhar
+            # Extração dos resultados
+            dados_rag = rag_resp.json()
+            lista_resultados = dados_rag.get("results", [])
             
-            #extrai os textos ("snippets") da resposta do RAG
-            chunks = rag_response.json().get("chunks", [])
-            documentos_relevantes = [
-                chunk.get("snippet", "") 
-                for chunk in chunks 
-                if chunk.get("snippet")
-            ]
+            # Extrai apenas o texto dos documentos encontrados
+            contexto_final = [item.get("text", "") for item in lista_resultados if item.get("text")]
             
-            if not documentos_relevantes:
-                logger.warning("RAG não retornou documentos relevantes.")
+            if not contexto_final:
+                logger.warning("RAG retornou lista vazia. Usando conhecimento geral.")
+                contexto_final = ["Nenhuma norma específica encontrada no banco de dados."]
 
-            #2. chamar o serviço LLM com o prompt e o contexto
-            logger.info("Enviando dados para o LLM...")
-            
+        except Exception as e:
+            logger.error(f"Erro ao consultar RAG: {e}")
+            # Não paramos o sistema se o RAG falhar, tentamos seguir só com o LLM
+            contexto_final = ["Erro de conexão com o banco de normas."]
+
+        # --- PASSO 2: ENVIAR PARA O LLM ---
+        try:
+            logger.info(f"Enviando para LLM: {LLM_SERVICE_URL}")
             llm_payload = {
-                "prompt_usuario": request_data.descricao,
-                "contexto_rag": documentos_relevantes
+                "prompt_usuario": data.descricao,
+                "contexto_rag": contexto_final
             }
             
-            llm_response = await client.post(
-                LLM_SERVICE_URL,
-                json=llm_payload,
-                timeout=30.0
-            )
-            llm_response.raise_for_status() #lança exceçao se o LLM falhar
+            llm_resp = await client.post(LLM_SERVICE_URL, json=llm_payload)
+            llm_resp.raise_for_status()
+            
+            resultado = llm_resp.json()
+            
+        except Exception as e:
+            logger.error(f"Erro crítico no LLM: {e}")
+            raise HTTPException(status_code=502, detail="O módulo de Inteligência Artificial falhou.")
 
-            #3. retornar a resposta final do LLM
-            resposta_final_json = llm_response.json()
-            logger.info("Análise concluída com sucesso.")
-
-            return AnaliseResponse(
-                analise_completa=resposta_final_json.get("analise", "Resposta de análise não encontrada."),
-                acoes_sugeridas=resposta_final_json.get("acoes_sugeridas", "Nenhuma ação sugerida.")
-            )
-
-    except httpx.HTTPStatusError as e:
-        #erro de um dos outros serviços (ex: 404, 500)
-        logger.error(f"Erro no microserviço ({e.request.url}): {e.response.status_code}")
-        raise HTTPException(status_code=502, detail=f"Erro de comunicação com microserviço: {e.response.text}")
-    except httpx.RequestError as e:
-        #erro de conexão (ex: serviço offline)
-        logger.error(f"Não foi possível conectar ao serviço {e.request.url}: {e}")
-        raise HTTPException(status_code=503, detail=f"Serviço indisponível: {e.request.url}")
-    except Exception as e:
-        logger.error(f"Erro inesperado no gateway: {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail=f"Erro interno no servidor: {e}")
-
-@app.get("/health")
-def health_check():
-    """Endpoint simples para verificar se a API está no ar."""
-    return {"status": "API Gateway está operacional"}
+    logger.info("Controller: Orquestração finalizada com sucesso.")
+    return resultado
