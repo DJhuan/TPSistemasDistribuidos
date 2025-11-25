@@ -73,6 +73,7 @@ def semantic_search(payload: QueryRequest):
     
     try:
         results = vectorstore.similarity_search_with_score(query, k=k)
+
         response = []
         for doc, score in results:
             entry = {
@@ -81,6 +82,12 @@ def semantic_search(payload: QueryRequest):
                 "score": float(score)
             }
             response.append(entry)
+
+            # Imprime os dados da resposta do RAG
+            print("--- Resultado ---")
+            print(f"Texto: {doc.page_content}")
+            print(f"Metadados: {doc.metadata}")
+            print(f"Score: {score}")
 
         return {
             "query": query,

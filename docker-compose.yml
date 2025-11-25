@@ -5,7 +5,9 @@ services:
   # MÓDULO 1: BANCO DE DADOS E RAG
   # =========================================
   ollama:
-    image: ollama/ollama:latest
+    build:
+      context: ./ollama
+      dockerfile: Dockerfile
     container_name: ollama-service
     ports:
       - "11435:11434"
