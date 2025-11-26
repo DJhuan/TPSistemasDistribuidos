@@ -56,11 +56,14 @@ with col2:
                     
                     if response.status_code == 200:
                         data = response.json()
-                        analise = data.get("analise_completa")
+                        analise = data.get("analise")
                         acoes = data.get("acoes_sugeridas")
                         
                         # Exibição dos resultados
                         st.success("Análise concluída com sucesso!")
+                        
+                        st.markdown("### 📄 Análise Completa")
+                        st.info(analise)
                         
                         st.markdown("### ✅ Ações Sugeridas")
                         st.warning(acoes)

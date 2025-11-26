@@ -52,9 +52,8 @@ Thumbs.db
 .env
 .env.*
 
-# FAISS index and metadata (gerados)
+# FAISS index
 /retriever/index.faiss
-/retriever/metadata.json
 
 # PDFs (opcional: grandes arquivos de dataset)
 /retriever/pdfs/
